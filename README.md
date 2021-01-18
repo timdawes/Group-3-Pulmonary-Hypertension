@@ -1,2 +1,2 @@
 # Group-3-Pulmonary-Hypertension
-Code to accompany Dawes et al, "Phosphodiesterase inhibitor 5 is associated with improved survival in group 3 pulmonary hypertension"
+Pulmonary hypertension (PH) in chronic lung disease is common, linked to poor prognosis and has no long-term data to understand treatment strategies. We present longitudinal cohort (n=184) of incident group 3 PH patients with over 380 patient.years follow up to understand the associations of treatment with survival. All code used in analysis is below.
