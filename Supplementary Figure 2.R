@@ -1,4 +1,4 @@
-# Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: an observational study
+# Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: a Bayesian observational cohort study
 #
 # Timothy JW Dawes [1], Colm McCabe [1,2], Konstantinos Dimopoulos [1,2,3], Iain Stewart [1], Simon Bax [2], 
 # Carl Harries [2], Chinthaka Samaranayake [1], Aleksander Kempny [1,2,3], Philip L Molyneaux [1,4],
@@ -17,7 +17,7 @@
 #
 # Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
 #
-# Copyright Tim Dawes, August 2021
+# Copyright Tim Dawes, October 2021
 #
 # Supplementary Figure 2: Graphs of imputation accuracy by field
 
