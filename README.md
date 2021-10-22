@@ -21,8 +21,11 @@ Survival analysis to understand the associations of treatment with other clinica
 #### Bayesian linear mixed-models
 Mixed model analysis with pooling of datasets to understand the association of treatment with haemodynamic, echocardiographic and functional surrogates of clinical status.
 
-### 5. (Supplementary) Figure x.R
+### 5. Figure x.R
 #### R code to draw the figures in the manuscript
+
+### 6. Supplementary Figure x.R
+#### R code to draw the supplementary figures in the manuscript
 
 ### Reference:
 Dawes et al, Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: an observational study
