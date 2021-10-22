@@ -28,7 +28,7 @@ Mixed model analysis with pooling of datasets to understand the association of t
 #### R code to draw the supplementary figures in the manuscript
 
 ### Reference:
-Dawes et al, Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: an observational study
+Dawes et al, Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: a Bayesian observational cohort study
 
 
 
