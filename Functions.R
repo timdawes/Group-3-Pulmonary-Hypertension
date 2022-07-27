@@ -1,4 +1,4 @@
-# Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: a Bayesian observational cohort study
+# Phosphodiesterase 5 inhibitor treatment and survival in interstitial lung disease pulmonary hypertension: a Bayesian retrospective observational cohort study
 #
 # Timothy JW Dawes [1], Colm McCabe [1,2], Konstantinos Dimopoulos [1,2,3], Iain Stewart [1], Simon Bax [2], 
 # Carl Harries [2], Chinthaka Samaranayake [1], Aleksander Kempny [1,2,3], Philip L Molyneaux [1,4],
@@ -16,25 +16,18 @@
 # *Joint senior authors
 #
 # Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
-#
-# Copyright Tim Dawes, October 2021
 
 
-
-      # Load packages
+   # Load packages
       options(warn=-1)
       
       suppressPackageStartupMessages({
-        library(dplyr)
-        library(networkD3)
-        library(tidyr)
         library(readxl)
         library(survival)
         library(Amelia)
         library(mitools)
         library(epitools)
         library(mix)
-        library(blme)
         library(glmnet)
         library(Hmisc)
         library(lubridate)
@@ -44,7 +37,6 @@
         library(reshape2)
         library(ordinal)
         library(MCMCglmm)
-        library(nlme)
         library(splines)
         library(spBayesSurv)
         library(coda)
@@ -52,25 +44,38 @@
         library(tidyverse)
         library(flexsurv)
         library(RColorBrewer)
-        library(colorRamps)
-        library(pracma)
+        library(scales)
+        library(MatchIt)
+        library(JointAI)
+        
+        
+        # Pooling of imputed dataset for Table 1
         library(BSDA)
         library(miceadds)
         library(psfmi)
         library(DescTools)
+        library(MASS)
+        
+        # Arranging composite ggplot figures
         library(egg)
         library(gtable)
         library(grid)
+        
+        # Imputation accuracy plot ("overimpute")
         library(png)
         library(ggthemes)
-        library(caret)
-        library(rpsychi) 
+        
+        library(rpsychi) # ind.twoway.second function
         library(km.ci)
+        
+        # Propensity Score Matching
+        library(MatchIt)
+        library(gridExtra)
+        
+        
       })
 
-
-# Define Functions
-
+   
 
 
 categorise<- function(cat.vec, a)
