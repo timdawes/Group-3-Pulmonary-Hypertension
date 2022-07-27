@@ -1,5 +1,5 @@
-# Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: an observational study
-#
+# Phosphodiesterase 5 inhibitor treatment and survival in interstitial lung disease pulmonary hypertension: a Bayesian retrospective observational cohort study
+
 # Timothy JW Dawes [1], Colm McCabe [1,2], Konstantinos Dimopoulos [1,2,3], Iain Stewart [1], Simon Bax [2], 
 # Carl Harries [2], Chinthaka Samaranayake [1], Aleksander Kempny [1,2,3], Philip L Molyneaux [1,4],
 # Samuel Seitler [2], Thomas Semple [5], Wei Li [1,6], Peter George [1,4], Vasilis Kouranos [1,4],
@@ -16,8 +16,6 @@
 # *Joint senior authors
 #
 # Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
-#
-# Copyright Tim Dawes, August 2021
 #
 # Supplementary Figure 4: Is the diagnosis associated with number of RHCs?
                 
