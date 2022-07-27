@@ -1,0 +1,90 @@
+
+ # Propensity Score Matching Approach
+    
+    library(MatchIt)
+    library(gridExtra)
+    
+    fn_bal <- function(dta, variable , label) {
+      
+      if (variable == "Gender")
+          {
+          dta$TreatedPDE5 <- as.factor(dta$TreatedPDE5)
+          t<- table(dta$Gender)
+          support<- c(names(t)[1], names(t)[length(t)])
+          ggplot(dta, aes(x=distance, y=Gender, color = factor(TreatedPDE5))) +
+            geom_jitter(alpha = 0.7, size = 5, height = 0.2) +
+            #geom_smooth(method = "loess", se = F, span=1) +
+            xlab("Propensity score") +
+            ylab("Gender") +
+            theme_bw() +
+            ylim(support) +
+            theme(legend.position = "none",
+                  axis.text.x = element_text(size = 16),
+                  axis.text.y = element_text(size = 16),
+                  axis.title.x = element_text(size = 16),
+                  axis.title.y = element_text(size = 16)) +
+                  scale_y_discrete(labels = c("Female","Male")) +
+                  theme_bw() +
+                  theme(axis.line = element_line(colour = "black"),
+                        legend.position = "none",
+                        panel.grid.major = element_blank(),
+                        panel.grid.minor = element_blank(),
+                        panel.border = element_blank(),
+                        panel.background = element_blank())
+          
+      } else {
+        dta$variable <- dta[, variable]
+        dta$TreatedPDE5 <- as.factor(dta$TreatedPDE5)
+        support <- c(min(dta$variable), max(dta$variable))
+        ggplot(dta, aes(x = distance, y = variable, color = TreatedPDE5)) +
+          geom_point(alpha = 0.7, size = 1.5) +
+          geom_smooth(method = "loess", se = T, span=1) +
+          xlab("Propensity score") +
+          ylab(label) +
+          theme_bw() +
+          ylim(support) +
+          theme(legend.position = "none",
+                axis.text.x = element_text(size = 16),
+                axis.text.y = element_text(size = 16),
+                axis.title.x = element_text(size = 16),
+                axis.title.y = element_text(size = 16)) +
+                scale_y_continuous(limits = support) +
+                theme_bw() +
+                theme(axis.line = element_line(colour = "black"),
+                      legend.position = "none",
+                      panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank())
+          }
+      
+    }
+    
+    
+    # Estimate propensity scores
+        # Gender: 0 = Female, 1 = Male
+    
+    
+        form<- as.formula("TreatedPDE5 ~ AgeAtDiag + BNP + FVCperc + Gender + PVR + TLcoperc + distExTest") # ?mPAP
+        m_ps<- glm(form, data = Ix.at.diagnosis[which(Ix.at.diagnosis$Imp==1),], family = binomial())
+        prs_df<- data.frame(pr_score = predict(m_ps, type = "response"), TreatedPDE5 = m_ps$model$TreatedPDE5)
+        head(prs_df)
+        
+    labs <- paste("Treated with PDE5i:", c("Yes", "No"))
+    prs_df %>%
+      mutate(TreatedPDE5 = ifelse(TreatedPDE5 == TRUE, labs[1], labs[2])) %>%
+      ggplot(aes(x = pr_score)) +
+      geom_histogram(color = "white") +
+      facet_wrap(~TreatedPDE5) +
+      xlab("Probability of being treated with PDE5i") +
+      theme_bw()
+    
+    
+    match.data<- Ix.at.diagnosis[which(Ix.at.diagnosis$Imp==1),]
+    match.data$TreatedPDE5<- as.numeric(match.data$TreatedPDE5)
+    form<- as.formula("TreatedPDE5 ~ AgeAtDiag + as.numeric(Gender) + TAPSE + log(BNP) + log(PVR) + TLcoperc + FVCperc + distExTest")
+    
+    mod_match <- matchit(form, method = "nearest", data = match.data)
+    dta_m<- match.data(mod_match)
+    
+    
