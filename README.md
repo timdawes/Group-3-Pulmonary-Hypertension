@@ -1,8 +1,8 @@
 # Group-3-Pulmonary-Hypertension
-Pulmonary hypertension (PH) in chronic lung disease is common, linked to poor prognosis and has no long-term data to understand treatment strategies. We present longitudinal cohort (n=183) of incident group 3 PH patients with over 380 patient.years follow up to understand the associations of treatment with survival. Code used in the analysis is given below.
+Pulmonary hypertension (PH) is a life-threatening complication of interstitial lung disease (ILD-PH). We investigate whether treatment with phosphodiesterase 5 inhibitors (PDE5i) in patients with ILD-PH was associated with improved survival. We present a longitudinal cohort (n=128) of incident group 3 PH patients with over 300 patient.years' follow up to understand the associations of treatment with survival. Code used in the analysis is given below.
 
 ## Software and hardware requirements
-All statistical analysis was performed using R version 4.0.2 (R Foundation for Statistical Computing, Vienna, Austria; www.r-project.org) using RStudio version 1.3.1073 (Boston, Mass). Analysis was completed on a 2017 iMac with 4.2 GHz Quad-Core Intel Core i7 and 64Gb RAM.
+All statistical analysis was performed using R version 4.0.2 (R Foundation for Statistical Computing, Vienna, Austria; www.r-project.org) using RStudio version 1.3.1073 (Boston, Mass).
 
 ## Files
 ### 1. Functions.R
@@ -28,7 +28,7 @@ Mixed model analysis with pooling of datasets to understand the association of t
 #### R code to draw the supplementary figures in the manuscript
 
 ### Reference:
-Dawes et al, Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: a Bayesian observational cohort study
+Dawes et al, Phosphodiesterase 5 inhibitor treatment and survival in interstitial lung disease pulmonary hypertension: A Bayesian retrospective observational cohort study
 
 
 
