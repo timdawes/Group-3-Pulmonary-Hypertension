@@ -52,4 +52,45 @@
             geom_text(aes(y=Frequency+2), size=6, position=position_dodge(w = -0.5)) +
             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                   panel.background = element_blank(), axis.line = element_line(colour = "black"))
-    p1      
+    p1   
+
+
+
+
+  # Is PDE5i treatment associated with number of RHCs? (GLM with binomial link function)
+                    x<- table(d2$URN[match(rhc.complete.non.i$ID, d2$URN)])
+                    y<- d2$PDE[match(names(x), d2$URN)]
+                    
+                    bi.fit<- glm(y ~ x, family = binomial(link="logit"))
+                    summary(bi.fit)
+                    
+                    d<- sort(unique(y))
+                    t2<- matrix(0, nrow=3, ncol=2, dimnames=list(c("One","Two","Three"),c("No","Yes")))
+                    for (i in 1:2)
+                    {
+                      z<- d[i]
+                      s<- table(factor(x[which(y==z)], levels=(1:3)))
+                      t2[,i]<- s
+                    }
+                    
+                    cols<- brewer.pal(11,"Reds")[c(5,7,9)]
+                    t.long2<- cbind(gather(data.frame(t2), Treatment, Frequency), RHC=factor(rep(c("One","Two","Three"),2), levels=c("One","Two","Three")),
+                                   col=rep(cols,2))
+                    p2<- ggplot(data=data.frame(t.long2), aes(x=Treatment, y=Frequency, fill=RHC, label=Frequency)) +
+                        geom_col(position = position_dodge(width = +0.3)) +
+                        scale_fill_manual(values = rep(cols,2)) +
+                        theme(axis.line = element_line(colour = 'black', size = 1.5),
+                              axis.text = element_text(size=16),
+                              axis.title=element_text(size=16,face="bold")) +
+                        geom_text(aes(y=Frequency+2), size=6, position=position_dodge(width= +0.3)) +
+                        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                              panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+                      xlab("Treated with phophodiesterase 5 inhibitors")
+            
+                    p3<- ggarrange(p1, p2, labels = c("A", "B"), ncol = 1, nrow = 2)
+                    
+                    pdf(file="TreatmentVsRHCs.pdf", width=6, height=6, onefile = FALSE)
+                    p3
+                    dev.off()
+                    
+          
