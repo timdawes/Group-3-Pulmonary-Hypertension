@@ -134,27 +134,22 @@
                       after.DIDNOT<- d2$FC2[which(d2$URN %in% setdiff(unique.treated.ids, unlist(improvement.marker[,1])))]
                       length(before.DIDNOT)      
                       
-                      
-                      time<- c(rep(0, length(before.DID)), rep(1, length(after.DID)),
-                               rep(0, length(before.DIDNOT)), rep(1, length(after.DIDNOT)))
-                      length(time)
-                      
+               # Convert data to long format       
+                      time<- c(rep(0, length(before.DID)), rep(1, length(after.DID)), rep(0, length(before.DIDNOT)), rep(1, length(after.DIDNOT)))
                       Rx<- c(rep(1, each = (length(before.DID) + length(after.DID))), rep(0, (length(before.DIDNOT) + length(after.DIDNOT))))
-                      length(Rx)
                       
                       df<- data.frame(index = c(rep(1:length(before.DID),2), rep(1:length(before.DIDNOT), 2)),
                                       variable = rep("FC", 2 * (length(before.DID) + length(before.DIDNOT))),
                                       FC = c(before.DID, after.DID, before.DIDNOT, after.DIDNOT),
                                       time = time,
                                       Rx = Rx)
-                      
+
+
+               # Look at FC differences by linear model all FC data before/after treatment and in responder/non-responder groups
                       fit.FC<- lm(FC ~ time*Rx, data=df[which(df$FC!=0),])
                       
-                      summary(fit.FC)
-                      confint(fit.FC)
                       par(mfrow=c(1,1), mar = c(4,4,4,4))
                       barplot(FC ~ time + Rx, data = df)
-                      median(before.DID)
                       
                       # Stacked + percent
                       df<- data.frame(Proportion = c(table(factor(before.DID, 1:4)), table(factor(after.DID, 1:4)), table(factor(before.DIDNOT, 1:4)), table(factor(after.DIDNOT, 1:4))),
@@ -165,6 +160,8 @@
                       df<- df[-which(df$FC == 1),]
                       names(df)[names(df)=="FC"]<- "Functional Class"
                       
+                     
+              # Print the diagram to pdf
                       pdf(file="Figure S9.pdf", width=6, height=6)
                       
                       ggplot(df, aes(fill=FC, y=Proportion, x=Time)) + 
@@ -174,7 +171,6 @@
                         scale_fill_discrete(name = "Functional Class") +
                         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                               panel.background = element_blank(), axis.line = element_line(colour = "black"))
-                        
                       
                       dev.off()
                 
