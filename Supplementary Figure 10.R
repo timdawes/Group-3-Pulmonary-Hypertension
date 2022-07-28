@@ -1,1 +1,140 @@
+# Phosphodiesterase 5 inhibitor treatment and survival in interstitial lung disease pulmonary hypertension: a Bayesian retrospective observational cohort study
+#
+# Timothy JW Dawes [1], Colm McCabe [1,2], Konstantinos Dimopoulos [1,2,3], Iain Stewart [1], Simon Bax [2], 
+# Carl Harries [2], Chinthaka Samaranayake [1], Aleksander Kempny [1,2,3], Philip L Molyneaux [1,4],
+# Samuel Seitler [2], Thomas Semple [5], Wei Li [1,6], Peter George [1,4], Vasilis Kouranos [1,4],
+# Felix Chua [1,4], Elisabetta A Renzoni [1,4], Maria Kokosi [1,4], Gisli Jenkins [1,4], Athol U Wells [1,4],
+# S John Wort [1,2]*, Laura C Price [1,2,3]*
+#
+# [1] National Heart and Lung Institute, Imperial College London, UK
+# [2] National Pulmonary Hypertension Service
+# [3] Adult Congenital Heart Disease Service, Royal Brompton Hospital, London, UK
+# [4] Department of Interstitial Lung Disease, Royal Brompton Hospital, London, UK
+# [5] Department of Radiology, Royal Brompton Hospital, London
+# [6] Department of Echocardiography, Royal Brompton Hospital, London, UK.
+#
+# *Joint senior authors
+#
+# Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
 
+# Code based on published propensity analysis code from
+# https://sejdemyr.github.io/r-tutorials/statistics/tutorial8.html
+
+# Define functions
+
+ fn_bal <- function(dta, variable , label) {
+      
+      if (variable == "Gender")
+          {
+          dta$TreatedPDE5 <- as.factor(dta$TreatedPDE5)
+          t<- table(dta$Gender)
+          support<- c(names(t)[1], names(t)[length(t)])
+          ggplot(dta, aes(x=distance, y=Gender, color = factor(TreatedPDE5))) +
+            geom_jitter(alpha = 0.7, size = 5, height = 0.2) +
+            #geom_smooth(method = "loess", se = F, span=1) +
+            xlab("Propensity score") +
+            ylab("Gender") +
+            theme_bw() +
+            ylim(support) +
+            theme(legend.position = "none",
+                  axis.text.x = element_text(size = 16),
+                  axis.text.y = element_text(size = 16),
+                  axis.title.x = element_text(size = 16),
+                  axis.title.y = element_text(size = 16)) +
+                  scale_y_discrete(labels = c("Female","Male")) +
+                  theme_bw() +
+                  theme(axis.line = element_line(colour = "black"),
+                        legend.position = "none",
+                        panel.grid.major = element_blank(),
+                        panel.grid.minor = element_blank(),
+                        panel.border = element_blank(),
+                        panel.background = element_blank())
+          
+      } else {
+        dta$variable <- dta[, variable]
+        dta$TreatedPDE5 <- as.factor(dta$TreatedPDE5)
+        support <- c(min(dta$variable), max(dta$variable))
+        ggplot(dta, aes(x = distance, y = variable, color = TreatedPDE5)) +
+          geom_point(alpha = 0.7, size = 1.5) +
+          geom_smooth(method = "loess", se = T, span=1) +
+          xlab("Propensity score") +
+          ylab(label) +
+          theme_bw() +
+          ylim(support) +
+          theme(legend.position = "none",
+                axis.text.x = element_text(size = 16),
+                axis.text.y = element_text(size = 16),
+                axis.title.x = element_text(size = 16),
+                axis.title.y = element_text(size = 16)) +
+                scale_y_continuous(limits = support) +
+                theme_bw() +
+                theme(axis.line = element_line(colour = "black"),
+                      legend.position = "none",
+                      panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank())
+          }
+      
+    }
+
+
+# Define the formula used for propensity matching
+      form<- as.formula("TreatedPDE5 ~ AgeAtDiag + BNP + FVCperc + Gender + PVR + TLcoperc + distExTest") # ?mPAP
+        m_ps<- glm(form, data = Ix.at.diagnosis[which(Ix.at.diagnosis$Imp==1),], family = binomial())
+        prs_df<- data.frame(pr_score = predict(m_ps, type = "response"), TreatedPDE5 = m_ps$model$TreatedPDE5)
+
+# View the propensity scores in the treated and untreated groups
+      labs <- paste("Treated with PDE5i:", c("Yes", "No"))
+      prs_df %>%
+        mutate(TreatedPDE5 = ifelse(TreatedPDE5 == TRUE, labs[1], labs[2])) %>%
+        ggplot(aes(x = pr_score)) +
+        geom_histogram(color = "white") +
+        facet_wrap(~TreatedPDE5) +
+        xlab("Probability of being treated with PDE5i") +
+        theme_bw()
+    
+# Find matched subjects    
+    match.data<- Ix.at.diagnosis[which(Ix.at.diagnosis$Imp==1),]
+    match.data$TreatedPDE5<- as.numeric(match.data$TreatedPDE5)
+    form<- as.formula("TreatedPDE5 ~ AgeAtDiag + as.numeric(Gender) + TAPSE + log(BNP) + log(PVR) + TLcoperc + FVCperc + distExTest")
+    
+    mod_match <- matchit(form, method = "nearest", data = match.data)
+    dta_m<- match.data(mod_match)
+    
+   # Output the scatterplots of the matching (Supplementary Figure 10)
+          setwd("~/Dropbox/ILD-PH/ILD PDE5 Paper/Figures/FigureSStats1")
+          
+          jpeg(file="PM_covariates1.jpg", width=600, height=150)
+          pdf(file="PM_covariates1.pdf", width=12, height=12)
+          grid.arrange(
+            fn_bal(dta_m, "AgeAtDiag","Age (years)"),
+            fn_bal(dta_m, "BNP", "Brain natriuretic peptide (ng/L)") + theme(legend.position = "none"),
+            fn_bal(dta_m, "TLcoperc", "Diffusing capacity for carbon monoxide (%)"),
+            fn_bal(dta_m, "FVCperc","Forced vital capacity (%)"),
+            fn_bal(dta_m, "Gender", "Gender"),
+            fn_bal(dta_m, "PVR", "Pulmonary vascular resistance (WU)"),
+            fn_bal(dta_m, "distExTest", "Six-minute walk distance (m)"),
+            fn_bal(dta_m, "TAPSE", "Tricuspid annular plane systolic excursion (cm)"),
+            layout_matrix = rbind(c(1,1,2,2,3,3), c(4,4,5,5,6,6), c(NA,7,7,8,8,NA)))
+          dev.off()
+          
+          pdf(file="PM_covariates2.pdf", width=12, height=4)
+          jpeg(file="PM_covariates2.jpg", width=900, height=300)
+          grid.arrange(
+            fn_bal(dta_m, "FVCperc","Forced vital capacity (%)"),
+            fn_bal(dta_m, "BNP", "Brain natriuretic peptide (ng/L)") + theme(legend.position = "none"),
+            fn_bal(dta_m, "TLcoperc", "Diffusing capacity for carbon monoxide (%)"),
+            nrow = 1)
+          dev.off()
+          
+        pdf(file="PM_covariates3.pdf", width=12, height=4)
+          jpeg(file="PM_covariates3.jpg", width=900, height=300)
+          grid.arrange(
+            fn_bal(dta_m, "FVCperc","Forced vital capacity (%)"),
+            fn_bal(dta_m, "Gender", "Gender"),
+            fn_bal(dta_m, "FVCperc","Forced vital capacity (%)"),
+            nrow = 1)
+          dev.off()
+       
+    
