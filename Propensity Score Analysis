@@ -84,9 +84,9 @@
         form<- as.formula("TreatedPDE5 ~ AgeAtDiag + BNP + FVCperc + Gender + PVR + TLcoperc + distExTest") # ?mPAP
         m_ps<- glm(form, data = Ix.at.diagnosis[which(Ix.at.diagnosis$Imp==1),], family = binomial())
         prs_df<- data.frame(pr_score = predict(m_ps, type = "response"), TreatedPDE5 = m_ps$model$TreatedPDE5)
-        head(prs_df)
         
     labs <- paste("Treated with PDE5i:", c("Yes", "No"))
+    
     prs_df %>%
       mutate(TreatedPDE5 = ifelse(TreatedPDE5 == TRUE, labs[1], labs[2])) %>%
       ggplot(aes(x = pr_score)) +
