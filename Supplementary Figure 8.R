@@ -165,63 +165,9 @@
                         ncensor.plot.height = NULL,
                         newpage = FALSE,
                       )
+
                       dev.off()
                     
 
 
-                # Difference in Functional Classes before/after treatment in patients who DID respond
-                      before.DID<- d2$FC1[match(unique(unlist(improvement.marker[,1])), d2$URN)]
-                      after.DID<- d2$FC2[match(unique(unlist(improvement.marker[,1])), d2$URN)]
-                      length(before.DID)
-                      
-                # Difference in Functional Classes before/after treatment in patients who DID NOT respond
-                      before.DIDNOT<- d2$FC1[which(d2$URN %in% setdiff(unique.treated.ids, unlist(improvement.marker[,1])))]
-                      after.DIDNOT<- d2$FC2[which(d2$URN %in% setdiff(unique.treated.ids, unlist(improvement.marker[,1])))]
-                      length(before.DIDNOT)      
-                      
-                      
-                      time<- c(rep(0, length(before.DID)), rep(1, length(after.DID)),
-                               rep(0, length(before.DIDNOT)), rep(1, length(after.DIDNOT)))
-                      length(time)
-                      
-                      Rx<- c(rep(1, each = (length(before.DID) + length(after.DID))), rep(0, (length(before.DIDNOT) + length(after.DIDNOT))))
-                      length(Rx)
-                      
-                      df<- data.frame(index = c(rep(1:length(before.DID),2), rep(1:length(before.DIDNOT), 2)),
-                                      variable = rep("FC", 2 * (length(before.DID) + length(before.DIDNOT))),
-                                      FC = c(before.DID, after.DID, before.DIDNOT, after.DIDNOT),
-                                      time = time,
-                                      Rx = Rx)
-                      
-                      fit.FC<- lm(FC ~ time*Rx, data=df[which(df$FC!=0),])
-                      
-                      summary(fit.FC)
-                      confint(fit.FC)
-                      par(mfrow=c(1,1), mar = c(4,4,4,4))
-                      barplot(FC ~ time + Rx, data = df)
-                      median(before.DID)
-                      
-                      # Stacked + percent
-                      df<- data.frame(Proportion = c(table(factor(before.DID, 1:4)), table(factor(after.DID, 1:4)), table(factor(before.DIDNOT, 1:4)), table(factor(after.DIDNOT, 1:4))),
-                                      FC = factor(rep(1:4, times = 4)),
-                                      Time = factor(rep(rep(c("Before Treatment","After Treatment"), each=4),2), levels = c("Before Treatment","After Treatment")),
-                                      Rx = rep(c("Responders","Non-Responders"), each = 8))
-                      
-                      df<- df[-which(df$FC == 1),]
-                      names(df)[names(df)=="FC"]<- "Functional Class"
-                      
-                      pdf(file="Figure S9.pdf", width=6, height=6)
-                      
-                      ggplot(df, aes(fill=FC, y=Proportion, x=Time)) + 
-                        geom_bar(position="fill", stat="identity") + facet_grid( ~ Rx) + theme_bw() +
-                        scale_fill_brewer(c(brewer.pal(9,"Reds")[c(8)], brewer.pal(9,"Blues")[c(8)], brewer.pal(9, "Greens")[c(8)])) +
-                        theme(legend.position="bottom") +
-                        scale_fill_discrete(name = "Functional Class") +
-                        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                              panel.background = element_blank(), axis.line = element_line(colour = "black"))
-                        
-                      
-                      dev.off()
-                
-    # Fig
 
