@@ -18,48 +18,42 @@
 # Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
 
 
-tiff("SFigure4.tiff", width = 5, height = 7, units='in', res=300, compression='lzw')
+   # Choose appropriate colours
+                        km.cols<- c(brewer.pal(9,"Reds")[8], brewer.pal(9,"Blues")[8],
+                                    brewer.pal(9,"Greens")[8], brewer.pal(9, "Purples")[8],
+                                    brewer.pal(9,"Greys")[8])
+                        
+                        diagnosis.cat<- d2$Diagnosis_cat4
+                        diagnosis_cat<- model.matrix(~ diagnosis.cat)
+                        diagnosis_cat[,1]<- rep(0, nrow(diagnosis_cat))
+                        SubgroupOne<- which(apply(diagnosis_cat,1,sum)==0)
+                        diagnosis_cat[SubgroupOne,1]<- 1
+                        colnames(diagnosis_cat)<- c("Undifferentiated","Other","NSIP","IPF","HP")
+                        d2.plus<- cbind(d2, diagnosis_cat)
+                        
+                        
+                        km_Diag<- survfit(Surv(FUTimeYears, Outcome) ~ HP + IPF + NSIP + Other + Undifferentiated, data = d2.plus)
 
-
-km_subtype<- with(d2, Surv(FUTimeYears, Dead))
-d2$Diagnosis_sub_grouped<- d2$Diagnosis_sub
-d2$Diagnosis_sub_grouped[which(d2$Diagnosis_sub_grouped %in% c("3.3","3.4","3.5","3.7"))]<- "Other"
-d2$Diagnosis_sub_grouped<- factor(d2$Diagnosis_sub_grouped, levels = c("3.1", "3.2", "Other"))
-table(d2$Diagnosis_sub_grouped)
-
-
-km_group<- survfit(Surv(FUTimeYears, Dead) ~ Diagnosis_sub_grouped, data = d2)
-p<- ggsurvplot(km_group, data = d2, size = 2,                # change line size
-               palette = c(cols[c(4,6,2)]),#, add.alpha(cols[3],0.99)),
-               conf.int = TRUE,          # Add confidence interval
-               conf.int.alpha = 0.4,
-               pval = TRUE,              # Add p-value
-               pval.size = 6,
-               pval.coord = c(0,0.1),
-               risk.table = TRUE,        # Add risk table
-               risk.table.col = "strata",# Risk table color by groups
-               legend.labs = rev(c("Groups 3.3-3.7","Group 3.2","Group 3.1")), 
-               censor = FALSE,
-               xlim = c(0,10),
-               break.x.by = 1,
-               break.y.by = 0.2,
-               xlab = "Time (years)",
-               legend = c(0.85,0.9),
-               legend.title = "",
-               font.x = c(18, "plain"),
-               font.y = c(18, "plain"),
-               font.tickslab = c(14, "plain"),
-               risk.table.height = 0.35,
-               risk.table.y.text = F,
-               risk.table.font.x = c(32, "plain"))
-p
-
-dev.off()                                  
-
-
-surv_median(km_group)
-
-# 1,2 and 3 year survival by subgroup
-      surv_pvalue(survfit(Surv(FUTimeYears, Dead) ~ Diagnosis_sub_grouped, data = d2))
-      summary(survfit(Surv(FUTimeYears, Dead) ~ 1, data = d2), times=c(1,2,3,4,5))
-
+                        p<- ggsurvplot(km_Diag, data = d2.plus, size = 1.5,                # change line size
+                          palette = km.cols,
+                          conf.int = TRUE,          # Add confidence interval
+                          conf.int.alpha = 0.2,
+                          pval = TRUE,
+                          risk.table = TRUE,        # Add risk table
+                          risk.table.col = "strata",# Risk table color by groups
+                          legend.labs = c("HP","IPF","NSIP","Undifferentiated","Other"), 
+                          xlim = c(0,5),
+                          surv.median.line = "hv",
+                          break.x.by = 1,
+                          break.y.by = 0.1,
+                          xlab = "Time (years)",
+                          legend = "none",
+                          censor = TRUE,
+                          gg_theme = theme_classic()
+                          )
+                        
+                      
+                        pdf("SFigure5.pdf", width = 8, height = 8, onefile = FALSE)
+                        p
+                        dev.off()            
+                   
