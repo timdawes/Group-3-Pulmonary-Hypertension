@@ -21,10 +21,14 @@ Survival analysis to understand the associations of treatment with other clinica
 #### Bayesian linear mixed-models
 Mixed model analysis with pooling of datasets to understand the association of treatment with haemodynamic, echocardiographic and functional surrogates of clinical status.
 
-### 5. Figure x.R
+### 5. Propensity Score Matching.R
+#### Propensity Score Matching
+Parallel supplementary analysis to show how PDE5i treatment is associated with an improved survival in a propensity matched cohort
+
+### 6. Figure x.R
 #### R code to draw the figures in the manuscript
 
-### 6. Supplementary Figure x.R
+### 7. Supplementary Figure x.R
 #### R code to draw the supplementary figures in the manuscript
 
 ### Reference:
