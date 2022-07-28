@@ -123,52 +123,7 @@
                       }
                   
                 
-                # Supplementary Figure 8: Responders and Non-responders
-                
-                      d2$TreatedAndImproved[match(unlist(improvement.marker[,1]), d2$URN)]<- "TreatedAndImproved"
-                      
-                      Rx<- which(d2$TreatedAndImproved %in% c("NotTreated", "TreatedAndDidNotImprove","TreatedAndImproved"))
-                      table(d2$TreatedAndImproved)
-                      
-                      km_PDE5<- survfit(Surv(Rxfutime, Outcome) ~ TreatedAndImproved, data = d2[Rx,])
-                      km.cols<- c(brewer.pal(9,"Greens")[c(8)], brewer.pal(9,"Reds")[8], brewer.pal(9,"Blues")[8])
-                      
-                      
-                      titles<- c("Not Treated","Treated, no improvement", "Treated, improvement")
-                      
-                      p2<- ggsurvplot(km_PDE5, data = d2[Rx,], size = 1.5,                 # change line size
-                                      palette = km.cols,
-                                      conf.int = TRUE,          # Add confidence interval
-                                      conf.int.alpha = 0.4,
-                                      pval = FALSE,              # Add p-value
-                                      risk.table = TRUE,        # Add risk table
-                                      risk.table.col = "strata",# Risk table color by groups
-                                      legend.labs = titles,
-                                      censor = FALSE,
-                                      surv.median.line = "hv",
-                                      xlim = c(0,5),
-                                      break.x.by = 1,
-                                      break.y.by = 0.1,
-                                      xlab = "Time (years)",
-                                      legend = "none", # Change legend labels
-                                      ggtheme = theme_classic()      # Change ggplot2 theme
-                      )
-                      p2
-                      surv_pvalue(km_PDE5)
-                      km.ci(km_PDE5, method="peto")
-                      
-                      pdf("SFigure8.pdf", width = 8, height = 8)
-                      print(
-                        p2,
-                        surv.plot.height = 1,
-                        risk.table.height = .20,
-                        ncensor.plot.height = NULL,
-                        newpage = FALSE,
-                      )
-                      dev.off()
-                    
-
-
+               
                 # Difference in Functional Classes before/after treatment in patients who DID respond
                       before.DID<- d2$FC1[match(unique(unlist(improvement.marker[,1])), d2$URN)]
                       after.DID<- d2$FC2[match(unique(unlist(improvement.marker[,1])), d2$URN)]
@@ -223,4 +178,3 @@
                       
                       dev.off()
                 
-    # Fig
