@@ -1,4 +1,4 @@
-# Pulmonary vasodilator treatment and survival in group 3 pulmonary hypertension: a Bayesian observational cohort study
+# Phosphodiesterase 5 inhibitor treatment and survival in interstitial lung disease pulmonary hypertension: a Bayesian retrospective observational cohort study
 #
 # Timothy JW Dawes [1], Colm McCabe [1,2], Konstantinos Dimopoulos [1,2,3], Iain Stewart [1], Simon Bax [2], 
 # Carl Harries [2], Chinthaka Samaranayake [1], Aleksander Kempny [1,2,3], Philip L Molyneaux [1,4],
@@ -18,8 +18,13 @@
 # Correspondence details: Laura C Price. laura.price@rbht.nhs.uk
 #
 #
-# Bayesian mixed linear model code
-# Copyright Tim Dawes, October 2021
+# 
+# Input data
+
+# Group 3 PH Project
+# Tim Dawes September 2020
+
+
 
 # Input data
 
@@ -28,10 +33,12 @@
       
       # Load a vector of the expected data types (col_types) and then load the data
             
+            cat("\n Loading the Excel spreadsheets...\n")
+            
             col_types = as.character(read.csv("Data/col_types.csv")[,1])
-            d<- read_excel("Data/Data.xlsx", col_types=col_types)
+            d<- read_excel("Data/ILD.PH.RBH.Cohort.xlsx", col_types=col_types)[1:932,]
             DrugConversion<- read_excel("Data/DrugConversion.xlsx")
-            d2<- d[which(d$Include.3.PH.PFT.Echo=="Yes"),]
+            d2<- d[which(d$Include.3.2.PH.PFT.Echo=="Yes"),]
             
             cat("done")
             
@@ -56,7 +63,7 @@
             
       # Loop through patients sequentially building 'data2' type dataframe with treatment data
               
-              no.rows<- 432
+              no.rows<- 465
           
           # Treatment dates
               Rx.dates<- data.frame(DateOfBirth = as.Date(rep("1900-01-01", length=no.rows, format="%y/%m/%d")),
@@ -92,6 +99,7 @@
               for (i in 1:nrow(d2))
                   {
                       drug.cols<- which(is.na(d2[i,dose.start:(dose.start+15)])==FALSE)
+                      if ((i/10)==round(i/10)) {cat(i,"..",sep="")}
                       
                       # Add rows to the Rx dataset if this patient is on treatment
                       if (length(drug.cols)>0)
@@ -185,7 +193,7 @@
           
           
           Rx.data<- cbind(ID = Rx.demographics, Rx.dates, Rx.data)
-          
+          Rx.data<- Rx.data[which(Rx.data$ID!=""),]
           Rx.data$AgeAtTest<- (ymd(Rx.data$DateOfScan) - ymd(Rx.data$DateOfBirth)) / 365.25
           Rx.data$AgeAtDiag<- (ymd(Rx.data$DateOfDiagnosis) - ymd(Rx.data$DateOfBirth)) / 365.25
           Rx.data$DoseFctrPDE5<- match(Rx.data$DoseEqPDE5, sort(unique(Rx.data$DoseEqPDE5)))
@@ -193,18 +201,34 @@
           Rx.data$DoseFctrAny<- match(Rx.data$DoseEqAny, sort(unique(Rx.data$DoseEqAny)))
           
           
+          # Find patients who had dual therapy or triple therapy at any point
+          
+              NoTherapies<- rep(0, nrow(d2))
+              names(NoTherapies)<- unique(Rx.data$ID)[1:nrow(d2)]
+              
+              for (i in 1:nrow(d2))
+              {
+                rows.ID<- which(Rx.data$ID == unique(Rx.data$ID)[i])
+                cols.Rx<- match(c("DoseEqPDE5","DoseEqERA","DoseEqPG","DoseEqCCB","DoseEqGCS","DoseEqSLP"), colnames(Rx.data))
+                NoTherapies[i]<- max(apply(Rx.data[rows.ID, cols.Rx],1, function(x) {length(table(x))}) - 1)
+              }
+              table(NoTherapies)
+          
+          
+              
           # Time-dependent covariates    
           
                 
           # Make a dataframe which has one line per patient/imputation
-                d2.demo<- data.frame(d2[,c("DoB","Date.censoring","URN","Diagnosis","Gender","Dead","FUTimeYears")]) #temp = data1.joint
-                colnames(d2.demo)<- c("DateOfBirth","DateOfCensoring","ID","Diagnosis","Gender","Outcome","futime")
+                d2.demo<- data.frame(d2[,c("DoB","dateDIAGNOSIS","Date.censoring","AgeAtDiag","URN","Diagnosis","Gender","Dead","FUTimeYears")]) #temp = data1.joint
+                colnames(d2.demo)<- c("DateOfBirth","DateOfDiagnosis","DateOfCensoring","AgeAtDiag","ID","Diagnosis","Gender","Outcome","futime")
                 d2.demo$Outcome<- as.numeric(d2.demo$Outcome)
                 futime<- Outcome<- rep(0, nrow(d2.demo))
-                data1<- tmerge(d2.demo, d2.demo, id=ID, Outcome = event(futime, Outcome))
+                data1<- tmerge(d2.demo, d2.demo, id=ID, Outcome = event(futime, Outcome), tstart = -20, tstop = futime)
                 
                 
-          results.Rx.olps<- tmerge(data1, make.tdc.matrix(data1, Rx.data, "DateOfScan"), id=ID, AgeAtDiag = tdc(time, AgeAtDiag), DoseEqPDE5 = tdc(time, DoseEqPDE5), DoseEqERA = tdc(time, DoseEqERA), DoseEqPG = tdc(time, DoseEqPG),
+          results.Rx.olps<- tmerge(data1, make.tdc.matrix2(data1, Rx.data, "DateOfScan"), id=ID, 
+                                   DoseEqPDE5 = tdc(time, DoseEqPDE5), DoseEqERA = tdc(time, DoseEqERA), DoseEqPG = tdc(time, DoseEqPG),
                                    DoseEqCCB = tdc(time, DoseEqCCB), DoseEqGCS = tdc(time, DoseEqGCS), DoseEqSLP = tdc(time, DoseEqSLP), DoseEqLTOT = tdc(time, DoseEqLTOT), Treated = tdc(time, Treated),
                                    TreatedPDE5 = tdc(time, TreatedPDE5), DoseFctrPDE5 = tdc(time, DoseFctrPDE5),
                                    TreatedERA = tdc(time, TreatedERA), DoseFctrERA = tdc(time, DoseFctrERA),
@@ -236,6 +260,8 @@
                 echo.data<- results[[1]]
                 echo.dates<- results[[2]]
                 echo.demographics<- results[[3]]
+            
+              
                 
           # Remove duplicate investigations
                 t<- remove.duplicates(echo.data, echo.dates, echo.demographics, echo.present)
@@ -245,26 +271,49 @@
                   echo.present<- t[[4]]
                   
                    
+          data.not.demo<- intersect(which(is.na(echo.demographics$Height)==TRUE), which(is.na(echo.data$Height)==FALSE))
+            echo.demographics$Height[data.not.demo]<- echo.data$Height[data.not.demo]
+          data.not.demo<- intersect(which(is.na(echo.demographics$Weight)==TRUE), which(is.na(echo.data$Weight)==FALSE))
+            echo.demographics$Weight[data.not.demo]<- echo.data$Weight[data.not.demo]
+            
           
-          
-          
+          # Define RV dysfunction by the BSE definition: i.e. any of FAC <35/<30 in women/men, TAPSE < 1.7 or S' < 9
+          # ..as well as 'RV dysfunction' noted in the echo report (i.e. RVdys = TRUE)
+                  cat("\n Define the variable 'RV dysfunction' in line with BSE guidelines")
+                  
+            # Make some boolean variables
+                  echo.data$FAClow<- echo.dataTAPSElow<- echo.data$Slow<- FALSE
+            # Identify echos which have RV dysfunction by FAC, TAPSE or S'
+                  echo.data$FAClow[intersect(which(echo.demographics$Gender==0), which(echo.data$FAC<35))]<- TRUE
+                  echo.data$FAClow[intersect(which(echo.demographics$Gender==1), which(echo.data$FAC<30))]<- TRUE
+                  echo.data$TAPSElow[which(echo.data$TAPSE < 1.7)]<- TRUE
+                  echo.data$Slow[which(echo.data$S < 9)]<- TRUE
+            
+            # Define RV dysfunction as any echo with one of the above
+                  RVdys<- which(echo.data$RVdys==TRUE | echo.data$TAPSElow==TRUE | echo.data$FAClow==TRUE | echo.data$Slow==TRUE)
+                  echo.data$RVdys<- FALSE
+                  echo.data$RVdys[RVdys]<- TRUE
+                  echo.data$RVdys<- as.factor(echo.data$RVdys)
+                  rm(RVdys)
+            
           
           
           # Imputation
-          
+        
+          # Make new dataframe for all the imputed echo data
                 echo.complete.non.i<- cbind(echo.dates, echo.demographics, echo.data)
                 
           # Time-dependent covariates    
           
                 # Make a dataframe which has one line per patient/imputation
-                      d2.demo<- data.frame(d2[,c("DoB","Date.censoring","URN","Diagnosis","Diagnosis_sub","Gender","Dead","FUTimeYears")]) #temp = data1.joint
+                      d2.demo<- data.frame(d2[,c("DoB","Date.censoring","URN","Diagnosis","Diagnosis_sub","Gender","Dead","FUTimeYears")])
                       colnames(d2.demo)<- c("DateOfBirth","DateOfCensoring","ID","Diagnosis","Diagnosis_sub","Gender","Outcome","futime")
                       d2.demo$Outcome<- as.numeric(d2.demo$Outcome)
                       futime<- Outcome<- rep(0, nrow(d2.demo))
       
                 # Make a second dataframe which has one line per study (data2)
                       data1<- tmerge(d2.demo, d2.demo, id=ID, Outcome = event(futime, Outcome))
-                      results.echo.olps<- tmerge(data1, make.tdc.matrix(d2.demo, echo.complete.i, "DateOfScan"), id=ID, RVdys = tdc(time, RVdys), HR = tdc(time, HR), SBP = tdc(time, SBP), SR = tdc(time, SR),
+                      results.echo.olps<- tmerge(data1, make.tdc.matrix(d2.demo, echo.complete.non.i, "DateOfScan"), id=ID, RVdys = tdc(time, RVdys), HR = tdc(time, HR), SBP = tdc(time, SBP), SR = tdc(time, SR),
                                                  RV.dilat = tdc(time, RV.dilat), Long.dysfunc = tdc(time, Long.dysfunc), Rad.dysfunc = tdc(time, Rad.dysfunc), RVdys = tdc(time, RVdys), FAC = tdc(time, FAC),
                                                  TAPSE = tdc(time, TAPSE), S = tdc(time, S), TRvel = tdc(time, TRvel), RVSP = tdc(time, RVSP), RA.pressure = tdc(time, RA.pressure), RA.dilat = tdc(time, RA.dilat),
                                                  RA.areaI = tdc(time, RA.areaI), RA.volumeI = tdc(time, RA.volumeI), PAAT = tdc(time, PAAT), Effusion = tdc(time, Effusion), LVEF.Simpson = tdc(time, LVEF.Simpson),
@@ -306,8 +355,10 @@
           for (i in absolute.pft.cols) {
              na.absolute<- which(is.na(pft.data[,i])==TRUE)
              na.perc<- which(is.na(pft.data[,i+1])==TRUE)
+             
+             cat(paste("\n Completing missing percentages...",colnames(pft.data)[i],".",sep=""))
              percs.missing<- setdiff(na.perc, na.absolute)
-             cat(paste("\n Completing missing percentages...",colnames(pft.data)[i],sep=""))
+             cat(length(percs.missing),"percents missing.")
              
              for (j in percs.missing)
              {
@@ -320,8 +371,9 @@
                 }
              }
              
-             cat(paste("\n Completing missing absolute values...",colnames(pft.data)[i],sep=""))
+             cat(paste("\n Completing missing absolute values...",colnames(pft.data)[i]))
              abs.missing<- setdiff(na.absolute, na.perc)  
+             cat(" ", length(abs.missing),"absolute values missing.")
              
              for (j in abs.missing)
              {
@@ -338,19 +390,65 @@
           
           
           # Imputation
+    
           
+          # Make new dataframe for all the imputed echo data
                 pft.complete.non.i<- cbind(pft.dates, pft.demographics, pft.data)
                 
           
+                perc.abs.pairs<- match(c("FEV1","FEV1perc","FVC","FVCperc","Kco","Kcoperc","TLcoc","TLcoperc"), colnames(pft.complete.non.i))
+                for (j in 1:4)
+                {
+                  col.abs<- perc.abs.pairs[2*(j-1)+1]
+                  col.perc<- col.abs + 1
+                
+                      perc.not.abs<- intersect(which(is.na(pft.complete.non.i[,col.perc])==TRUE), which(is.na(pft.complete.non.i[,col.abs])==FALSE))
+                      cat("\n", j, "  ", length(perc.not.abs))
+                      pft.complete.non.i[perc.not.abs,]
+                      for (i in perc.not.abs)
+                      {
+                        z<- which(pft.complete.non.i$ID == pft.complete.non.i$ID[i])
+                        y<- pft.complete.non.i[z, col.perc]
+                        x<- pft.complete.non.i[z, col.abs]
+                      
+                          ratio<- mean(na.omit(y/x))
+                        n<- intersect(which(is.na(y)==TRUE), which(is.na(x)==FALSE))
+                        if (length(n)>0) {pft.complete.non.i[z[n], col.perc]<- x[n] * ratio}
+                      }
+                      
+                      abs.not.perc<- intersect(which(is.na(pft.complete.non.i[,col.perc])==FALSE), which(is.na(pft.complete.non.i[,col.abs])==TRUE))
+                      cat("\n", j, "  ", length(abs.not.perc))
+                      pft.complete.non.i[abs.not.perc,]
+                      
+                      for (i in abs.not.perc)
+                      {
+                        z<- which(pft.complete.non.i$ID == pft.complete.non.i$ID[i])
+                        y<- pft.complete.non.i[z, col.perc]
+                        x<- pft.complete.non.i[z, col.abs]
+                        
+                        ratio<- mean(na.omit(x/y))
+                        n<- intersect(which(is.na(x)==TRUE), which(is.na(y)==FALSE))
+                        if (length(n)>0) {pft.complete.non.i[z[n], col.abs]<- y[n] * ratio}
+                      }
+                }
+                
+                
+                
+                
+                
+                
+                
           # Time-dependent covariates    
           
                 # Make a second dataframe (data2) which has one line per echo
                       data1<- tmerge(d2.demo, d2.demo, id=ID, Outcome = event(futime, Outcome))
-                      data2<- make.tdc.matrix(d2.demo, pft.complete.i,"DateOfScan")
+                      data2<- make.tdc.matrix(d2.demo, pft.complete.non.i,"DateOfScan")
                       
                       data1<- change.data.type(data1)
                       data2<- change.data.type(data2)
                       
+                # If you get 'Error in findInterval(hash1, has2, left.open = TRUE) : 'vec' must be sorted non-decreasingly and not contains NAs'
+                
                       results.pft.olps<- tmerge(data1, data2, id=ID, FEV1 = tdc(time, FEV1), FEV1perc = tdc(time, FEV1perc), FVC = tdc(time, FVC), FVCperc = tdc(time, FVCperc),
                                                 TLcoc = tdc(time, TLcoc),  TLcoperc = tdc(time, TLcoperc), Kco = tdc(time, Kco), Kcoperc = tdc(time, Kcoperc))
                       
@@ -384,15 +482,20 @@
                 
           
           # c. Build the matrix storing the PFT data in
-                results<- extract.class.data.and.demographics(rhc.present, rhc.cols, d2, 4)
+                results<- extract.class.data.and.demographics(rhc.present, rhc.cols, d2, 6)
                       rhc.data<- results[[1]]
                       rhc.dates<- results[[2]]
                       rhc.demographics<- results[[3]]
                       
-            rhc.complete.non.i<- cbind(rhc.dates, rhc.demographics, rhc.data)
+        
+          
+          # Make new dataframe for all the imputed echo data
+                rhc.complete.non.i<- cbind(rhc.dates, rhc.demographics, rhc.data)
+                
           
           # Time-dependent covariates    
-                results.rhc.olps<- tmerge(data1, make.tdc.matrix(d2.demo, rhc.complete.i, "DateOfScan"), id=ID, mPAP = tdc(time, mPAP), PVR = tdc(time, PVR), CO = tdc(time, CO), PCWP = tdc(time, PCWP))
+                results.rhc.olps<- tmerge(data1, make.tdc.matrix(d2.demo, rhc.complete.non.i, "DateOfScan"), id=ID, mPAP = tdc(time, mPAP), PVR = tdc(time, PVR), CO = tdc(time, CO), PCWP = tdc(time, PCWP),
+                                          SaO2 = tdc(time, SaO2), SvO2 = tdc(time, SvO2))
           
           # Fit COX model
                 results.rhc.olps$PVR.bin<- results.rhc.olps$PVR>mean(results.rhc.olps$PVR)
@@ -425,10 +528,15 @@
                 ex.present<- t[[4]]
                 
           
-              ex.complete.non.i<- cbind(ex.dates, ex.demographics, ex.data)
+         # Make new dataframe for all the imputed echo data
+                ex.complete.non.i<- cbind(ex.dates, ex.demographics, distExTest = ex.data)
           
-                results.ex.olps$distExTest[which(is.na(results.ex.olps$distExTest)==TRUE)]<- mean(ex.data$distExTest)
+          # Make a second dataframe which has one line per study (data2)
+                results.ex.olps<- tmerge(data1, make.tdc.matrix(d2.demo, ex.complete.non.i, "DateOfScan"), id=ID, distExTest = tdc(time, distExTest))
+                results.ex.olps$distExTest[which(is.na(results.ex.olps$distExTest)==TRUE)]<- mean(ex.data)
                 
+                
+              
           cat("...done")
           
           
@@ -457,12 +565,19 @@
                 EmPHasis10.dates<- t[[2]]
                 EmPHasis10.demographics<- t[[3]]
                 EmPHasis10.present<- t[[4]]
-                
-             EmPHasis10.complete.non.i<- cbind(EmPHasis10.dates, EmPHasis10.demographics, EmPHasis10.data)
+               
+          
+          # Make new dataframe for all the imputed echo data
+           
+                EmPHasis10.complete.non.i<- cbind(EmPHasis10.dates, EmPHasis10.demographics, EmPHasis10.data)
                 
           # Make a second dataframe which has one line per study (data2)
-                results.EmPHasis10.olps<- tmerge(data1, make.tdc.matrix(d2.demo, EmPHasis10.complete.i, "DateOfScan"), id=ID, EmPHasis10 = tdc(time, EmPHasis10))
+                results.EmPHasis10.olps<- tmerge(data1, make.tdc.matrix(d2.demo, EmPHasis10.complete.non.i, "DateOfScan"), id=ID, EmPHasis10 = tdc(time, EmPHasis10))
                 results.EmPHasis10.olps$EmPHasis[which(is.na(results.EmPHasis10.olps$EmPHasis10)==TRUE)]<- mean(na.omit(EmPHasis10.data$EmPHasis10))
+                
+          # Fit COX model
+                #results.EmPHasis10.olps$EmPHasis10.bin<- results.EmPHasis10.olps$EmPHasis10>mean(na.omit(results.EmPHasis10.olps$EmPHasis10))
+                #fit<- with(results.EmPHasis10.olps, coxph(Surv(tstart, tstop, Outcome==1) ~ EmPHasis10.bin))
                 
           cat("...done")
           
@@ -487,14 +602,20 @@
                 FC.dates<- t[[2]]
                 FC.demographics<- t[[3]]
                 FC.present<- t[[4]]
-                
-              FC.complete.non.i<- cbind(FC.dates, FC.demographics, FC.data)
+               
+          
+          # Make new dataframe for all the imputed echo data
+            
+                FC.complete.non.i<- cbind(FC.dates, FC.demographics, FC.data)
                 
           
           # Make a second dataframe which has one line per study (data2)
-                results.FC.olps<- tmerge(data1, make.tdc.matrix(d2.demo, FC.complete.i, "DateOfScan"), id=ID, FC = tdc(time, FC))
+                results.FC.olps<- tmerge(data1, make.tdc.matrix(d2.demo, FC.complete.non.i, "DateOfScan"), id=ID, FC = tdc(time, FC))
                 results.FC.olps$FC[which(is.na(results.FC.olps$FC)==TRUE)]<- mean(na.omit(FC.data$FC))
                 
+          # Fit COX model
+                #results.FC.olps$FC.bin<- as.numeric(results.FC.olps$FC)>=median(as.numeric(na.omit(results.FC.olps$FC)))
+      
           cat("...done")
           
           
@@ -509,21 +630,22 @@
           
           Bloods.all<- read_excel("Data/Bloods.xlsx", sheet=2)
           
-          in.cohort<- which((Bloods.all$PATID %in% d2$URN)==TRUE)
-          no.in.d2<- na.omit(match(Bloods.all$PATID, d2$URN))
-          
-          Bloods.in.cohort<- Bloods.all[in.cohort, c('PATID','SampleCollectDateTime','DOB', 'BNP_ng/L', 'Sodium', 'Potassium', 'Urea','Creatinine','GFR','Bilirubin','ALP','ALT',
+          Bloods.in.cohort<- Bloods.all[which((Bloods.all$PATID %in% d2$URN)==TRUE), c('PATID','SampleCollectDateTime','DOB', 'BNP_ng/L', 'Sodium', 'Potassium', 'Urea','Creatinine','GFR','Bilirubin','ALP','ALT',
                                                      'Protein_Tot','Albumin','Corr_calcium', 'Iron',
                                                      'Transferrin_saturation','Transferrin','TIBC','Free_T4')]
           
           
           
           # Format for LOCFandB function (coming up)
-                Bloods.in.cohort.for.imputation<- Bloods.in.cohort[order(Bloods.in.cohort$PATID, Bloods.in.cohort$SampleCollectDateTime),-c(2,3)]
-                Bloods.names<- c("ID","BNP","Na","K","Ur","Creat","eGFR","Bili","ALP","ALT","Prot","Alb","CCa","Fe","TFSat","TF","TIBC","T4")
-                colnames(Bloods.in.cohort.for.imputation)<- Bloods.names
- 
-         # Make BNP dates
+                Bloods.in.cohort<- Bloods.in.cohort[order(Bloods.in.cohort$PATID, Bloods.in.cohort$SampleCollectDateTime),]
+                Bloods.names<- c("ID","SampleCollectDateTime","DOB","BNP","Na","K","Ur","Creat","eGFR","Bili","ALP","ALT","Prot","Alb","CCa","Fe","TFSat","TF","TIBC","T4")
+                colnames(Bloods.in.cohort)<- Bloods.names
+         
+                in.cohort<- which((Bloods.in.cohort$ID %in% d2$URN)==TRUE)
+                no.in.d2<- na.omit(match(Bloods.in.cohort$ID, d2$URN))
+                
+                
+          # Make BNP dates
                 DateOfScan = as.Date(Bloods.in.cohort$SampleCollectDateTime, format="%Y-%m-%d")
                 DateOfBirth = as.Date(Bloods.in.cohort$DOB, format="%Y-%m-%d")
                 DateOfCensoring = as.Date(d2$Date.censoring[no.in.d2], format="%Y-%m-%d")
@@ -536,75 +658,120 @@
           # Add progress bar
                 pb <- txtProgressBar(min = 0, max = length(no.in.d2), style = 2)
           
-          for (i in 1:length(no.in.d2))
-          {
-             nearest.date<- order(abs(ymd(as.Date(unlist(d2[no.in.d2[i],dateE.columns]), origin="1900-01-01")) - ymd(as.Date(Bloods.dates$DateOfScan[i], origin="1900-01-01"))))
-             Height[i]<- na.omit(unlist(d2[no.in.d2[i], dateE.columns[nearest.date]+2]))[1]
-             setTxtProgressBar(pb, i)
-          } 
+                  for (i in 1:length(no.in.d2))
+                  {
+                     nearest.date<- order(abs(ymd(as.Date(unlist(d2[no.in.d2[i],dateE.columns]), origin="1900-01-01")) - ymd(as.Date(Bloods.dates$DateOfScan[i], origin="1900-01-01"))))
+                     Height[i]<- na.omit(unlist(d2[no.in.d2[i], dateE.columns[nearest.date]+2]))[1]
+                     setTxtProgressBar(pb, i)
+                  } 
           
           
-          Bloods.demographics<- do.call(rbind, lapply(1:imputations, function(x) {
-             data.frame(ID = d2$URN[no.in.d2], Diagnosis = d2$Diagnosis[no.in.d2], Gender = d2$Gender[no.in.d2],
-                        AgeAtTest = (ymd(as.Date(DateOfScan)) - ymd(as.Date(d2$DoB[no.in.d2], format="%y-%m-%d"))) / 365.25,
-                        Height = Height, Outcome = d2$Censored[no.in.d2])}))
+          Bloods.demographics<- data.frame(ID = d2$URN[no.in.d2], Diagnosis = d2$Diagnosis[no.in.d2], Gender = d2$Gender[no.in.d2],
+                                            AgeAtTest = (ymd(as.Date(DateOfScan)) - ymd(as.Date(d2$DoB[no.in.d2], format="%y-%m-%d"))) / 365.25,
+                                            Height = Height, Outcome = d2$Outcome[no.in.d2])
           
-          Bloods.complete.non.i<- cbind(Bloods.dates, Bloods.demographics, Bloods.in.cohort.for.imputation) 
+          Bloods.complete.non.i<- cbind(Bloods.dates, Bloods.demographics, Bloods.in.cohort[,-c(2,3)]) 
           Bloods.complete.non.i$eGFR<- with(Bloods.complete.non.i, eGFR(creat = Creat, age = AgeAtTest, gender = Gender, black = FALSE, method = "CKD-EPI"))
+          
+          
           
           # Time dependent covariates
                 # Make a second dataframe which has one line per study (data2)
-                results.Bloods.olps<- tmerge(data1, make.tdc.matrix(d2.demo, Bloods.complete.i, "DateOfScan"), id=ID, BNP = tdc(time, BNP), Na = tdc(time, Na), K = tdc(time, K),
+                results.Bloods.olps<- tmerge(data1, make.tdc.matrix(d2.demo, Bloods.complete.non.i, "DateOfScan"), id=ID, BNP = tdc(time, BNP), Na = tdc(time, Na), K = tdc(time, K),
                                           Ur = tdc(time, Ur), Creat = tdc(time, Creat), eGFR = tdc(time, eGFR), Bili = tdc(time, Bili), ALP = tdc(time, ALP), ALT = tdc(time, ALT),
                                           Prot = tdc(time, Prot), Alb = tdc(time, Alb), CCa = tdc(time, CCa), Fe = tdc(time, Fe), TFSat = tdc(time, TFSat),
                                           TF = tdc(time, TF), TIBC = tdc(time, TIBC), T4 = tdc(time, T4))
                 
-                results.Bloods.olps$BNP[which(is.na(results.Bloods.olps$BNP)==TRUE)]<- mean(Bloods.in.cohort$`BNP_ng/L`)
-                results.Bloods.olps$Creat[which(is.na(results.Bloods.olps$Creat)==TRUE)]<- mean(Bloods.in.cohort$`Creatinine`)
-                results.Bloods.olps$BNP.bin<- results.Bloods.olps$BNP>mean(results.Bloods.olps$BNP)
+                #results.Bloods.olps$BNP[which(is.na(results.Bloods.olps$BNP)==TRUE)]<- mean(Bloods.in.cohort$`BNP_ng/L`)
+                #results.Bloods.olps$Creat[which(is.na(results.Bloods.olps$Creat)==TRUE)]<- mean(Bloods.in.cohort$`Creatinine`)
+                #results.Bloods.olps$BNP.bin<- results.Bloods.olps$BNP>mean(results.Bloods.olps$BNP)
                 
           
           cat("\n ...done")
           
                     
-          
-
- 
+         
 # Add all the NON-IMPUTED covariates together
           
           cat("\n Combining the non-imputed versions of the fields...")
           
+          data1<- tmerge(d2.demo, d2.demo, id = ID, tstart = -10, tstop = futime, Outcome = event(futime, Outcome))
           
-          results.olps.non.i<- tmerge(data1, make.tdc.matrix(d2.demo, echo.complete.non.i, "DateOfScan"), DateOfScan = tdc(time, DateOfScan), id=ID, Diagnosis = tdc(time, Diagnosis), AgeAtTest = tdc(time, AgeAtTest),
+          results.olps.non.i<- tmerge(data1, make.tdc.matrix2(d2.demo, echo.complete.non.i, "DateOfScan"), id=ID,
+                                      DateOfScan = tdc(time, DateOfScan),
                                       Height = tdc(time, Height), Weight = tdc(time, Weight), BMI = tdc(time, BMI), BSA = tdc(time, BSA), HR = tdc(time, HR), SBP = tdc(time, SBP), SR = tdc(time, SR),
                                       RV.dilat = tdc(time, RV.dilat), Long.dysfunc = tdc(time, Long.dysfunc), Rad.dysfunc = tdc(time, Rad.dysfunc), RVdys = tdc(time, RVdys), FAC = tdc(time, FAC),
                                       TAPSE = tdc(time, TAPSE), S = tdc(time, S), TRvel = tdc(time, TRvel), RVSP = tdc(time, RVSP), RA.pressure = tdc(time, RA.pressure), RA.dilat = tdc(time, RA.dilat),
                                       RA.areaI = tdc(time, RA.areaI), RA.volumeI = tdc(time, RA.volumeI), PAAT = tdc(time, PAAT), Effusion = tdc(time, Effusion), LVEF.Simpson = tdc(time, LVEF.Simpson),
                                       Edecel = tdc(time, Edecel), E.A = tdc(time, E.A), EE. = tdc(time, EE.), LA.dilat = tdc(time, LA.dilat), LA.areaI = tdc(time, LA.areaI), LA.volumeI = tdc(time, LA.volumeI))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, pft.complete.non.i,"DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), FEV1 = tdc(time, FEV1), FEV1perc = tdc(time, FEV1perc),
-                                      FVC = tdc(time, FVC), FVCperc = tdc(time, FVCperc), TLcoc = tdc(time, TLcoc), TLcoperc = tdc(time, TLcoperc), Kco = tdc(time, Kco), Kcoperc = tdc(time, Kcoperc))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, rhc.complete.non.i, "DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), PVR = tdc(time, PVR), mPAP = tdc(time, mPAP), PCWP = tdc(time, PCWP), CO = tdc(time, CO))
+          cat("\n Number of data rows with demographics, echo:",nrow(results.olps.non.i))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, ex.complete.non.i, "DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), distExTest = tdc(time, distExTest))
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, pft.complete.non.i,"DateOfScan"), id=ID,
+                                      FEV1 = tdc(time, FEV1), FEV1perc = tdc(time, FEV1perc), FVC = tdc(time, FVC), FVCperc = tdc(time, FVCperc), TLcoc = tdc(time, TLcoc), TLcoperc = tdc(time, TLcoperc), Kco = tdc(time, Kco), Kcoperc = tdc(time, Kcoperc))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, EmPHasis10.complete.non.i, "DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), EmPHasis10 = tdc(time, EmPHasis10))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, FC.complete.non.i, "DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), FC = tdc(time, FC))
+          cat("\n Number of data rows with demographics, echo, pfts:",nrow(results.olps.non.i))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, Rx.data, "DateOfScan"), id=ID, AgeAtDiag = tdc(time, AgeAtDiag), AgeAtTest = tdc(time, AgeAtTest), 
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, rhc.complete.non.i, "DateOfScan"), id=ID,
+                                      PVR = tdc(time, PVR), mPAP = tdc(time, mPAP), PCWP = tdc(time, PCWP), CO = tdc(time, CO),
+                                      SaO2 = tdc(time, SaO2), SvO2 = tdc(time, SvO2))
+          
+          cat("\n Number of data rows with demographics, echo, pfts, rhc:",nrow(results.olps.non.i))
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, ex.complete.non.i, "DateOfScan"), id=ID, 
+                                      distExTest = tdc(time, distExTest))
+          
+          cat("\n Number of data rows with demographics, echo, pfts, rhc, exercise testing:",nrow(results.olps.non.i))
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, EmPHasis10.complete.non.i, "DateOfScan"), id=ID, 
+                                      EmPHasis10 = tdc(time, EmPHasis10))
+          
+          cat("\n Number of data rows with demographics, echo, pfts, rhc, exercise testing, E10:",nrow(results.olps.non.i))
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, FC.complete.non.i, "DateOfScan"), id=ID, 
+                                      FC = tdc(time, FC))
+          
+          cat("\n Number of data rows with demographics, echo, pfts, rhc, exercise testing, E10, FC:",nrow(results.olps.non.i))
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, Rx.data, "DateOfScan"), id=ID,
                                       DoseEqPDE5 = tdc(time, DoseEqPDE5), DoseFctrPDE5 = tdc(time, DoseFctrPDE5), TreatedPDE5 = tdc(time, TreatedPDE5),
                                       DoseEqERA = tdc(time, DoseEqERA), DoseFctrERA = tdc(time, DoseFctrERA), TreatedERA = tdc(time, TreatedERA),
                                       Treated = tdc(time, Treated))
           
-          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix(d2.demo, Bloods.complete.non.i, "DateOfScan"), id=ID, AgeAtTest = tdc(time, AgeAtTest), BNP = tdc(time, BNP), Na = tdc(time, Na), K = tdc(time, K),
+          cat("\n Number of data rows with demographics, echo, pfts, rhc, exercise testing, E10, FC, Rx.data:",nrow(results.olps.non.i))
+          
+          results.olps.non.i<- tmerge(results.olps.non.i, make.tdc.matrix2(d2.demo, Bloods.complete.non.i, "DateOfScan"), id=ID,
+                                      BNP = tdc(time, BNP), Na = tdc(time, Na), K = tdc(time, K),
                                       Ur = tdc(time, Ur), Creat = tdc(time, Creat), eGFR = tdc(time, eGFR), Bili = tdc(time, Bili), ALP = tdc(time, ALP), ALT = tdc(time, ALT),
                                       Prot = tdc(time, Prot), Alb = tdc(time, Alb), CCa = tdc(time, CCa), Fe = tdc(time, Fe), TFSat = tdc(time, TFSat),
                                       TF = tdc(time, TF), TIBC = tdc(time, TIBC), T4 = tdc(time, T4))
           
+          cat("\n Number of data rows with demographics, echo, pfts, rhc, exercise testing, E10, FC, Rx.data, bloods:",nrow(results.olps.non.i))
+          
           results.olps.non.i<- change.data.type(results.olps.non.i)
-          results.olps.i.amelia<- JustAMELIA(results.olps.non.i, imputations, maxit, 500, logs)
+          
+          results.olps.non.i<- results.olps.non.i[which(results.olps.non.i$tstart>(-10)),]
+          
+          # Add in BMI and BSA where obvious
+                BMI.possible<- intersect(which(is.na(results.olps.non.i$BMI)==TRUE), intersect(which(is.na(results.olps.non.i$Height)==FALSE), which(is.na(results.olps.non.i$Weight)==FALSE)))
+                BSA.possible<- intersect(which(is.na(results.olps.non.i$BSA)==TRUE), intersect(which(is.na(results.olps.non.i$Height)==FALSE), which(is.na(results.olps.non.i$Weight)==FALSE)))
+                results.olps.non.i$BMI[BMI.possible]<- results.olps.non.i$Weight[BMI.possible] / (results.olps.non.i$Height[BMI.possible])^2
+                results.olps.non.i$BSA[BSA.possible]<- sqrt((results.olps.non.i$Weight[BSA.possible]) * (results.olps.non.i$Height[BSA.possible]*100) / 3600)
+           
+          # Add in CPI and IDn
+                results.olps.non.i$CPI<- with(results.olps.non.i, CPI(TLcoperc, FVCperc, FEV1perc))
+                results.olps.non.i$IDn<- match(results.olps.non.i$ID, unique(results.olps.non.i$ID))
+          
+              all.as.numeric<- FALSE
+              results.olps.i.amelia<- JustAMELIA(results.olps.non.i, imputations, maxit, 500, logs, noms, ords, idvars, all.as.numeric)
+              
+          # Use this version to generate data for the overimputation section
+              all.as.numeric<- TRUE
+              results.olps.i.amelia.as.numeric<- JustAMELIA(results.olps.non.i, imputations, maxit, 500, logs, noms, ords, idvars, all.as.numeric)
+              
           
           
           cat("\n done.")
@@ -612,4 +779,7 @@
           
   
           
-   
+      
+
+
+
