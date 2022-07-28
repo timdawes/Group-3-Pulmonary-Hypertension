@@ -19,6 +19,11 @@
 #
 #
 # Propensity Score Matching Approach
+
+# Code based on published propensity analysis code from
+# https://sejdemyr.github.io/r-tutorials/statistics/tutorial8.html
+
+# Define functions to draw LOESS plots showing matching accuracy
     
     fn_bal <- function(dta, variable , label) {
       
