@@ -1,5 +1,5 @@
 # Group-3-Pulmonary-Hypertension
-Pulmonary hypertension (PH) is a life-threatening complication of interstitial lung disease (ILD-PH). We investigate whether treatment with phosphodiesterase 5 inhibitors (PDE5i) in patients with ILD-PH was associated with improved survival. We present a longitudinal cohort (n=128) of incident group 3 PH patients with over 300 patient.years' follow up to understand the associations of treatment with survival. Code used in the analysis is given below.
+Pulmonary hypertension (PH) is a life-threatening complication of interstitial lung disease (ILD-PH). We investigate whether treatment with phosphodiesterase 5 inhibitors (PDE5i) in patients with ILD-PH was associated with improved survival. We present a longitudinal cohort (n=128) of incident group 3 PH patients with over 220 patient.years' follow up to understand the associations of treatment with survival. Code used in the analysis is given below.
 
 ## Software and hardware requirements
 All statistical analysis was performed using R version 4.0.2 (R Foundation for Statistical Computing, Vienna, Austria; www.r-project.org) using RStudio version 1.3.1073 (Boston, Mass).
